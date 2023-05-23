@@ -7,17 +7,19 @@ from pathlib import Path
 from prompt_toolkit.shortcuts import confirm
 
 RE_CODEBLOCK = re.compile(r"`{3}([^:\s]*):?(.*?)\n([\s\S]+?)`{3}")
-MAX_LENGTH = 30
 LANG_EXT = {"markdown": ".md", "python": ".py", "python3": ".py"}
 DEFAULT_ENCODING = "utf-8"
 
 
-def extract_codeblocks(text: str) -> list[tuple[str, str, str]]:
+def extract_codeblocks(
+    text: str, title_max_length: int = 30
+) -> list[tuple[str, str, str]]:
     """
     Extracts code blocks from the given text and returns a list of tuples representing the code blocks.
 
     Args:
         text (str): The input text from which code blocks are extracted.
+        title_max_length (int): Max length of codeblock's title. Defaults to 30.
 
     Returns:
         list[tuple[str, str, str]]: A list of tuples representing code blocks. Each tuple contains three elements:
@@ -31,7 +33,9 @@ def extract_codeblocks(text: str) -> list[tuple[str, str, str]]:
         blockname = (
             blockname.strip()
             if blockname.strip()
-            else hashlib.sha256(bytes(code, DEFAULT_ENCODING)).hexdigest()[:MAX_LENGTH]
+            else hashlib.sha256(bytes(code, DEFAULT_ENCODING)).hexdigest()[
+                :title_max_length
+            ]
         )
         blockname = "".join((blockname, LANG_EXT.get(lang, "")))
         codeblocks.append((lang, blockname, code.strip()))
@@ -42,14 +46,11 @@ class Memo:
     """
     Represents a memo with content, title, and file-related operations.
     If the title is not specified, title and file_path depend on the content.
-
-    Attributes:
-        TITLE_MAX_LENGTH (int): The maximum length allowed for a memo title.
     """
 
-    TITLE_MAX_LENGTH: int = 30
-
-    def __init__(self, out_dir: Path, content: str, title: str = ""):
+    def __init__(
+        self, out_dir: Path, content: str, title: str = "", title_max_length: int = 30
+    ):
         """
         Initializes a Memo instance.
 
@@ -57,24 +58,32 @@ class Memo:
             out_dir (Path): The output directory where the memo will be stored.
             content (str): The content of the memo.
             title (str, optional): The title of the memo. Defaults to an empty string.
+            title_max_length (int): Max length of codeblock's title. Defaults to 30.
         """
         self._out_dir = out_dir
         self._content = content
         self._title = title
+        self._title_max_length = title_max_length
         self._is_edited: bool = False
 
     @classmethod
-    def from_file(cls, file_path: Path) -> Memo:
+    def from_file(cls, file_path: Path, title_max_length: int = 30) -> Memo:
         """
         Creates a Memo instance from a file.
 
         Args:
             file_path (Path): The path to the file.
+            title_max_length (int): Max length of codeblock's title. Defaults to 30.
 
         Returns:
             Memo: A Memo instance created from the file.
         """
-        return cls(file_path.parents[1], file_path.read_text(), file_path.stem)
+        return cls(
+            file_path.parents[1],
+            file_path.read_text(),
+            file_path.stem,
+            title_max_length,
+        )
 
     def edit_content(self, content: str) -> None:
         """
@@ -102,7 +111,9 @@ class Memo:
         """
         if not self._title:
             self._title = (
-                self._content.splitlines()[0][: self.TITLE_MAX_LENGTH].replace(" ", "_")
+                self._content.splitlines()[0][: self._title_max_length].replace(
+                    " ", "_"
+                )
                 if self._content
                 else "Untitled"
             )
@@ -144,6 +155,8 @@ class Memo:
         elif self._confirm_overwrite():
             self.file_path.write_text(self._content)
 
-            for _, blockname, code in extract_codeblocks(self._content):
+            for _, blockname, code in extract_codeblocks(
+                self._content, self._title_max_length
+            ):
                 codeblock_path = self.file_path.parent / blockname
                 codeblock_path.write_text(code)
