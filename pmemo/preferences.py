@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic import BaseModel, PositiveInt
 
 
+# ref: https://github.com/pygments/pygments/blob/c3e1371fceb104b69c613a014d0b2124f8d0fe1b/pygments/styles/__init__.py#L16
 class PygmentsStyles(str, Enum):
     default = "default"
     emacs = "emacs"
