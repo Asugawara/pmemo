@@ -28,7 +28,7 @@ command | option | description
 
 # Preference
 
-name | default | help
+name | default | description
 -- | -- | --
 out_dir | `$HOME/.pmemo` | specifies the directory where Pmemo saves memos
 memo_preference.max_title_length | 30 | sets the maximum length of a memo title.
