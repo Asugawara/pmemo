@@ -16,21 +16,26 @@ $ pip install pmemo
 ```
 
 # Usage
-```
-usage: pm [-h] [-o OUTDIR] {new,edit,list,preview} ...
 
-positional arguments:
-  {new,edit,list,preview}
-    new                 create new memo (default positional argument `pm` -> `pm new`)
-    edit                edit memo (searching with a specified query, similar to using the `peco`)
-    list                list all memos
-    preview             preview memo(markdown) on terminal (searching with a specified query, similar to using the `peco`)
+command | option | description
+-- | -- | --
+`pm` or `pm new` | -- | create new memo
+`pm edit` | -- | edit memo (searching with a specified query, similar to using the `peco`)
+`pm list` | -p, --prefix | list all memos
+`pm preview` | -- | preview memo(markdown) on terminal (searching with a specified query, similar to using the `peco`)
+`pm preference` | -- | please refer to the [Preference section](https://github.com/Asugawara/pmemo#Preference)
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -o OUTDIR, --outdir OUTDIR
-                        directory to save memos. default to $HOME/.pmemo
-```
+
+# Preference
+
+name | default | description
+-- | -- | --
+out_dir | `$HOME/.pmemo` | specifies the directory where Pmemo saves memos
+memo_preference.max_title_length | 30 | sets the maximum length of a memo title.
+editor_preference.prompt_spaces | 4 | defines the number of spaces used for line numbering in the editor
+editor_preference.style_name | "github-dark" | sets the style of the editor
+editor_preference.indentation_spaces | 4 | sets the number of spaces for indentation (tab size)
+
 
 # Versioning
 This repo uses [Semantic Versioning](https://semver.org/).
