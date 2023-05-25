@@ -98,7 +98,7 @@ def custom_select(choices: Union[list[str], dict[str, Path]]) -> str:
     If the execution is interrupted by a "KeyboardInterrupt" (typically triggered by pressing Ctrl+C), the program will be terminated.
 
     Args:
-        choices (dict[str, Path]): dict of choices displayed on the terminal.
+        choices (Union[list[str], dict[str, Path]]): list or dict of choices displayed on the terminal.
 
     Returns:
         str: string of the selected choice.
