@@ -1,4 +1,6 @@
 from functools import partial
+from pathlib import Path
+from typing import Optional, Union
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.filters import IsDone
@@ -6,8 +8,13 @@ from prompt_toolkit.formatted_text import AnyFormattedText
 from prompt_toolkit.formatted_text.utils import to_plain_text
 from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase, merge_key_bindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout.containers import ConditionalContainer, HSplit, Window
-from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.layout.containers import (
+    ConditionalContainer,
+    HSplit,
+    VSplit,
+    Window,
+)
+from prompt_toolkit.layout.controls import DummyControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
@@ -16,7 +23,6 @@ from pmemo.utils import error_handler
 
 ITEM_CLASS = "class:item"
 SELECTED_CLASS = "class:selected"
-styles = Style([("item", ""), ("selected", "underline bg:#d980ff #ffffff")])
 
 
 class CustomFormattedTextControl(FormattedTextControl):
@@ -87,12 +93,12 @@ class CustomFormattedTextControl(FormattedTextControl):
 
 
 @error_handler
-def custom_select(choices: list[str]) -> str:
+def custom_select(choices: Union[list[str], dict[str, Path]]) -> str:
     """Choose one option from a list of choices while searching with a specified query, similar to using the "peco"
     If the execution is interrupted by a "KeyboardInterrupt" (typically triggered by pressing Ctrl+C), the program will be terminated.
 
     Args:
-        choices (list[str]): list of choices displayed on the terminal.
+        choices (Union[list[str], dict[str, Path]]): list or dict of choices displayed on the terminal.
 
     Returns:
         str: string of the selected choice.
@@ -113,10 +119,26 @@ def custom_select(choices: list[str]) -> str:
 
     candidates_display = ConditionalContainer(Window(control), ~IsDone())
 
+    def get_memo_content() -> str:
+        selected = to_plain_text(control.get_pointed_at()).strip()
+        return choices[selected].read_text() if isinstance(choices, dict) else ""
+
+    preview_control = FormattedTextControl(get_memo_content, focusable=False)
+    preview_display = ConditionalContainer(
+        Window(
+            preview_control,
+            height=len(choices),
+            wrap_lines=True,
+            ignore_content_width=True,
+        ),
+        ~IsDone(),
+    )
     app: Application[AnyFormattedText] = Application(
-        layout=Layout(HSplit([text_area, candidates_display])),
+        layout=Layout(
+            HSplit([text_area, VSplit([candidates_display, preview_display])])
+        ),
         key_bindings=control.get_key_bindings(),
-        style=styles,
+        style=Style([("item", ""), ("selected", "underline bg:#d980ff #ffffff")]),
         erase_when_done=True,
     )
     return to_plain_text(app.run()).strip()
