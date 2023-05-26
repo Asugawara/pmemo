@@ -53,9 +53,9 @@ def main():
         else PmemoPreference()
     )
 
-    openai_completion = OpenAiCompletion()
     editor = PmemoEditor(
-        **preferences.editor_preference.dict(), openai_completion=openai_completion
+        **preferences.editor_preference.dict(),
+        openai_completion=OpenAiCompletion(**preferences.openai_preference.dict()),
     )
     if args.cmd == "new":
         content = editor.text("Memo")

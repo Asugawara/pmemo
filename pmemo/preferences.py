@@ -1,5 +1,6 @@
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
 from pydantic import BaseModel, PositiveInt
 
@@ -66,6 +67,16 @@ class MemoPreference(BaseModel, frozen=True):
     max_title_length: PositiveInt = 30
 
 
+# ref: https://platform.openai.com/docs/api-reference/completions/create
+class OpenAiPreference(BaseModel, frozen=True):
+    api_key: Optional[str] = None
+    model: str = "gpt-3.5-turbo"
+    max_tokens: int = 16
+    temperature: int = 0
+    top_p: float = 1.0
+    n: int = 1
+
+
 PREFERENCE_FILE_PATH = Path(__file__).parent / ".preference"
 
 
@@ -73,6 +84,7 @@ class PmemoPreference(BaseModel, frozen=True):
     out_dir: Path = Path.home() / ".pmemo"
     memo_preference: MemoPreference = MemoPreference()
     editor_preference: EditorPreference = EditorPreference()
+    openai_preference: OpenAiPreference = OpenAiPreference()
 
     def write(self):
         PREFERENCE_FILE_PATH.write_text(self.json())
