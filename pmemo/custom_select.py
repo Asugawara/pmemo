@@ -93,7 +93,9 @@ class CustomFormattedTextControl(FormattedTextControl):
 
 
 @error_handler
-def custom_select(choices: Union[list[str], dict[str, Path]]) -> str:
+def custom_select(
+    choices: Union[list[str], dict[str, Path]], max_preview_height: int = 10
+) -> str:
     """Choose one option from a list of choices while searching with a specified query, similar to using the "peco"
     If the execution is interrupted by a "KeyboardInterrupt" (typically triggered by pressing Ctrl+C), the program will be terminated.
 
@@ -127,7 +129,7 @@ def custom_select(choices: Union[list[str], dict[str, Path]]) -> str:
     preview_display = ConditionalContainer(
         Window(
             preview_control,
-            height=len(choices),
+            height=max(len(choices), max_preview_height),
             wrap_lines=True,
             ignore_content_width=True,
         ),
