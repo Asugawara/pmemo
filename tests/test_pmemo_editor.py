@@ -1,8 +1,38 @@
+from unittest.mock import Mock
+
 import pytest
 from prompt_toolkit.input.defaults import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 
-from pmemo.pmemo_editor import PmemoEditor
+from pmemo.pmemo_editor import (
+    AutoSuggestFromHistoryForMultiline,
+    PmemoEditor,
+    Suggestion,
+)
+
+
+@pytest.mark.parametrize(
+    "text,expect",
+    [
+        ("h", "oge"),
+        ("f", "uga"),
+        ("ho", "ge"),
+        ("hog", "e"),
+        ("test", "\nmulti\nline"),
+        ("no-hit", None),
+    ],
+)
+def test_autosuggest(text, expect):
+    auto_suggest = AutoSuggestFromHistoryForMultiline()
+    buffer_mock = Mock()
+    buffer_mock.history.get_strings = lambda: ["hoge", "fuga", "test\nmulti\nline"]
+    document_mock = Mock()
+    document_mock.text = text
+    suggestion = auto_suggest.get_suggestion(buffer_mock, document_mock)
+    if isinstance(suggestion, Suggestion):
+        assert suggestion.text == expect
+    else:
+        assert suggestion is None
 
 
 def test_editor_line_number():
@@ -35,6 +65,7 @@ def test_editor_instruction():
 def test_editor_text(text):
     editor = PmemoEditor()
     with create_pipe_input() as pipe_input:
+        # `\x1b\r` is `Esc -> Enter`
         pipe_input.send_text("".join((text, "\x1b\r")))
         content = editor.text("Test", input=pipe_input, output=DummyOutput())
         assert content == text.strip()
@@ -65,9 +96,7 @@ def test_editor_text_cancel():
 def test_completion():
     editor = PmemoEditor()
     with create_pipe_input() as pipe_input:
-        for bracket_start in PmemoEditor.BRACKETS:
+        for bracket_start, bracket_end in PmemoEditor.BRACKETS.items():
             pipe_input.send_text("".join((bracket_start, "\x1b\r")))
             content = editor.text("Test", input=pipe_input, output=DummyOutput())
-            assert content == "".join(
-                (bracket_start, PmemoEditor.BRACKETS[bracket_start])
-            )
+            assert content == "".join((bracket_start, bracket_end))

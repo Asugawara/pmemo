@@ -1,6 +1,5 @@
 import argparse
 import copy
-from pathlib import Path
 
 from prompt_toolkit import PromptSession
 from rich.console import Console
@@ -8,6 +7,7 @@ from rich.markdown import Markdown
 
 from pmemo.custom_select import custom_select
 from pmemo.memo import Memo
+from pmemo.openai_completion import OpenAiCompletion
 from pmemo.pmemo_editor import PmemoEditor
 from pmemo.preferences import PREFERENCE_FILE_PATH, PmemoPreference
 from pmemo.utils import error_handler, sort_memos_by_mtime
@@ -53,7 +53,10 @@ def main():
         else PmemoPreference()
     )
 
-    editor = PmemoEditor(**preferences.editor_preference.dict())
+    editor = PmemoEditor(
+        **preferences.editor_preference.dict(),
+        openai_completion=OpenAiCompletion(**preferences.openai_preference.dict()),
+    )
     if args.cmd == "new":
         content = editor.text("Memo")
         memo = Memo(

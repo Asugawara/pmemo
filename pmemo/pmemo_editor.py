@@ -1,4 +1,8 @@
+from typing import Optional
+
 from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
+from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text.utils import to_plain_text
 from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase
@@ -9,7 +13,29 @@ from prompt_toolkit.styles import style_from_pygments_cls
 from pygments.lexers.markup import MarkdownLexer
 from pygments.styles import get_style_by_name
 
+from pmemo.openai_completion import OpenAiCompletion
 from pmemo.utils import error_handler
+
+
+class AutoSuggestFromHistoryForMultiline(AutoSuggest):
+    """
+    Auto-suggests based on the lines in the input history for multiline input.
+    """
+
+    def get_suggestion(
+        self, buffer: Buffer, document: Document
+    ) -> Optional[Suggestion]:
+        # Consider only the last line for the suggestion.
+        text = document.text.rsplit("\n", 1)[-1]
+
+        # Only create a suggestion when this is not an empty line.
+        if text.strip():
+            # Find first matching line in history.
+            for string in reversed(list(buffer.history.get_strings())):
+                if string.startswith(text):
+                    return Suggestion(string[len(text) :])
+
+        return None
 
 
 class PmemoEditor:
@@ -23,6 +49,7 @@ class PmemoEditor:
         prompt_spaces: int = 4,
         style_name: str = "github-dark",
         indentation_spaces: int = 4,
+        openai_completion: Optional[OpenAiCompletion] = None,
     ) -> None:
         """
         Initializes a PmemoEditor instance.
@@ -36,6 +63,9 @@ class PmemoEditor:
         self._style = style_from_pygments_cls(get_style_by_name(style_name))
         self._content = None
         Char.display_mappings["\t"] = " " * indentation_spaces
+        Char.display_mappings["\n"] = " "
+
+        self._openai_completion = openai_completion
 
     def _ljust_line_number(self, line_number: int) -> str:
         line_number_str = str(line_number + 1)
@@ -64,12 +94,14 @@ class PmemoEditor:
         session: PromptSession[str] = PromptSession(
             self._build_prompt_message(message),
             multiline=True,
+            wrap_lines=True,
             mouse_support=True,
             key_bindings=self.get_key_bindings(),
             prompt_continuation=self._prompt_continuation,
             lexer=PygmentsLexer(MarkdownLexer),
             style=self._style,
             erase_when_done=True,
+            auto_suggest=AutoSuggestFromHistoryForMultiline(),
             **kwargs,
         )
         session.default_buffer.reset(Document(default))
@@ -98,5 +130,13 @@ class PmemoEditor:
                 event.app.current_buffer.insert_text(
                     self.BRACKETS[event.data], move_cursor=False
                 )
+
+        @bindings.add(Keys.ControlO)
+        def _(event):
+            if self._openai_completion is not None:
+                data = event.app.current_buffer.copy_selection()
+                completion = self._openai_completion.request_chatgpt(data.text)
+                event.app.current_buffer.history.append_string(completion)
+                event.app.current_buffer.suggestion = Suggestion(completion)
 
         return bindings
