@@ -1,6 +1,6 @@
 from functools import partial
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.filters import IsDone
@@ -14,7 +14,7 @@ from prompt_toolkit.layout.containers import (
     VSplit,
     Window,
 )
-from prompt_toolkit.layout.controls import DummyControl, FormattedTextControl
+from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
@@ -61,9 +61,7 @@ class CustomFormattedTextControl(FormattedTextControl):
 
     def get_pointed_at(self) -> AnyFormattedText:
         self.pointed_at = max(0, min(self.pointed_at, self.choice_count - 1))
-        return (
-            self._fragments[self.pointed_at][1] if self._fragments is not None else None
-        )
+        return self._fragments[self.pointed_at][1] if self._fragments else None
 
     def get_key_bindings(self) -> KeyBindingsBase:
         bindings = KeyBindings()
@@ -123,7 +121,11 @@ def custom_select(
 
     def get_memo_content() -> str:
         selected = to_plain_text(control.get_pointed_at()).strip()
-        return choices[selected].read_text() if isinstance(choices, dict) else ""
+        return (
+            choices[selected].read_text()
+            if isinstance(choices, dict) and selected
+            else ""
+        )
 
     preview_control = FormattedTextControl(get_memo_content, focusable=False)
     preview_display = ConditionalContainer(
