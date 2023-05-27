@@ -73,7 +73,6 @@ class OpenAiPreference(BaseModel, frozen=True):
     model: str = "gpt-3.5-turbo"
     max_tokens: int = 16
     temperature: int = 0
-    top_p: float = 1.0
     n: int = 1
 
 
