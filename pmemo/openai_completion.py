@@ -1,6 +1,11 @@
-from typing import Optional
+from abc import ABCMeta
+from functools import lru_cache
+from pathlib import Path
+from typing import Iterable, Optional
 
 import openai
+from prompt_toolkit.completion.base import CompleteEvent, Completer, Completion
+from prompt_toolkit.document import Document
 
 
 class OpenAiCompletion:
@@ -26,6 +31,7 @@ class OpenAiCompletion:
         self._model = model
         self._kwargs = kwargs
 
+    @lru_cache
     def request_chatgpt(self, prompt: str) -> str:
         """
         Request text completion from OpenAI Model based on the provided prompt.
@@ -47,3 +53,24 @@ class OpenAiCompletion:
             **self._kwargs,
         )
         return completion.choices[0].message.content
+
+
+class PromptTemplateCompleter(Completer):
+    def __init__(self, out_dir: Path) -> None:
+        self._templates = {file.stem: file for file in out_dir.glob("templates/*.txt")}
+        self._templates_dir = out_dir / "templates"
+
+    @property
+    def templates(self):
+        return self._templates
+
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
+        for title, prompt_file in self._templates.items():
+            yield Completion(text=prompt_file.read_text(), display=title)
+
+    def register_prompt_template(self, title: str, prompt: str):
+        template_file = self._templates_dir / title
+        template_file = template_file.with_suffix(".txt")
+        template_file.write_text(prompt)

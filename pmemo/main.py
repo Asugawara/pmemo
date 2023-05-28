@@ -2,12 +2,14 @@ import argparse
 import copy
 
 from prompt_toolkit import PromptSession
+from prompt_toolkit.document import Document
+from prompt_toolkit.formatted_text.utils import to_plain_text
 from rich.console import Console
 from rich.markdown import Markdown
 
 from pmemo.custom_select import custom_select
 from pmemo.memo import Memo
-from pmemo.openai_completion import OpenAiCompletion
+from pmemo.openai_completion import OpenAiCompletion, PromptTemplateCompleter
 from pmemo.pmemo_editor import PmemoEditor
 from pmemo.preferences import PREFERENCE_FILE_PATH, PmemoPreference
 from pmemo.utils import error_handler, sort_memos_by_mtime
@@ -20,9 +22,13 @@ def update_preference(preferences: dict) -> dict:
         update_preference(preferences[selected])
         return preferences
     session: PromptSession[str] = PromptSession(
-        f"{selected} = {preferences[selected]} -> "
+        f"{selected} = {preferences[selected]} -> ",
+        erase_when_done=True,
     )
-    preferences[selected] = session.app.run()
+    session.default_buffer.reset(Document(str(preferences[selected])))
+    new_val = to_plain_text(session.app.run()).strip()
+    if new_val:
+        preferences[selected] = new_val
     return preferences
 
 
@@ -44,6 +50,10 @@ def main():
     )
     parser_preferences = subparsers.add_parser("preference", help="set preferences")
     parser_preferences.add_argument("--init", action="store_true")
+    parser_templates = subparsers.add_parser(
+        "template", help="register prompt templates"
+    )
+    parser_templates.add_argument("-e", "--edit", action="store_true")
     parser.set_defaults(cmd="new")
     args = parser.parse_args()
 
@@ -53,12 +63,14 @@ def main():
         else PmemoPreference()
     )
 
+    completer = PromptTemplateCompleter(preferences.out_dir)
+
     editor = PmemoEditor(
         **preferences.editor_preference.dict(),
         openai_completion=OpenAiCompletion(**preferences.openai_preference.dict()),
     )
     if args.cmd == "new":
-        content = editor.text("Memo")
+        content = editor.text("Memo", completer=completer)
         memo = Memo(
             preferences.out_dir,
             content,
@@ -73,7 +85,9 @@ def main():
         edit_file_name = custom_select(choices=candidates)
         file_path = candidates[edit_file_name]
         memo = Memo.from_file(file_path, preferences.memo_preference.max_title_length)
-        content = editor.text(f"Edit: {file_path.name}", default=memo.content)
+        content = editor.text(
+            f"Edit: {file_path.name}", default=memo.content, completer=completer
+        )
         memo.edit_content(content)
         memo.save()
 
@@ -99,6 +113,21 @@ def main():
             new_preferences_dict = update_preference(copy.deepcopy(preferences.dict()))
             new_preferences = PmemoPreference.parse_obj(new_preferences_dict)
         new_preferences.write()
+
+    elif args.cmd == "template":
+        if args.edit:
+            prompt_title = custom_select(completer.templates)
+            file_path = completer.templates[prompt_title]
+            prompt_text = editor.text(
+                f"Edit: {file_path.name}", default=file_path.read_text()
+            )
+            completer.register_prompt_template(prompt_title, prompt_text)
+        else:
+            prompt_title = PromptSession(
+                "Prompt Title:", erase_when_done=True
+            ).app.run()
+            prompt_text = editor.text("Prompt Text:")
+            completer.register_prompt_template(prompt_title, prompt_text)
 
     else:
         raise NotImplementedError
