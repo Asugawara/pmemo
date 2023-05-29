@@ -5,6 +5,7 @@ from typing import Iterable, Optional
 import openai
 from prompt_toolkit.completion.base import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
+from prompt_toolkit.shortcuts import confirm
 
 from pmemo.utils import sort_by_mtime
 
@@ -57,6 +58,10 @@ class OpenAiCompletion:
 
 
 class PromptTemplateCompleter(Completer):
+    """
+    A completer that provides prompt template suggestions based on existing template files.
+    """
+
     def __init__(self, out_dir: Path) -> None:
         self._templates_dir = out_dir / "templates"
         self._templates = {
@@ -64,11 +69,11 @@ class PromptTemplateCompleter(Completer):
         }
 
     @property
-    def templates(self):
+    def templates(self) -> dict[str, Path]:
         return self._templates
 
     @property
-    def templates_dir(self):
+    def templates_dir(self) -> Path:
         return self._templates_dir
 
     def get_completions(
@@ -78,7 +83,17 @@ class PromptTemplateCompleter(Completer):
             yield Completion(text=prompt.read_text(), display=title)
 
 
-def register_prompt_template(templates_dir, title: str, prompt: str):
+def register_prompt_template(templates_dir: Path, title: str, prompt: str) -> None:
+    """
+    Register a prompt template by creating or updating a template file.
+
+    Args:
+        templates_dir (Path): The directory where template files are stored.
+        title (str): The title of the template.
+        prompt (str): The content of the template.
+    """
+    if not templates_dir.exists():
+        templates_dir.mkdir(parents=True)
     template_file = templates_dir / title
     template_file = template_file.with_suffix(".txt")
     if template_file.exists() and not prompt:
