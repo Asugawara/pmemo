@@ -9,10 +9,14 @@ from rich.markdown import Markdown
 
 from pmemo.custom_select import custom_select
 from pmemo.memo import Memo
-from pmemo.openai_completion import OpenAiCompletion, PromptTemplateCompleter
+from pmemo.openai_completion import (
+    OpenAiCompletion,
+    PromptTemplateCompleter,
+    register_prompt_template,
+)
 from pmemo.pmemo_editor import PmemoEditor
 from pmemo.preferences import PREFERENCE_FILE_PATH, PmemoPreference
-from pmemo.utils import error_handler, sort_memos_by_mtime
+from pmemo.utils import error_handler, sort_by_mtime
 
 
 @error_handler
@@ -51,7 +55,7 @@ def main():
     parser_preferences = subparsers.add_parser("preference", help="set preferences")
     parser_preferences.add_argument("--init", action="store_true")
     parser_templates = subparsers.add_parser(
-        "template", help="register prompt templates"
+        "template", help="register/edit prompt templates"
     )
     parser_templates.add_argument("-e", "--edit", action="store_true")
     parser.set_defaults(cmd="new")
@@ -80,7 +84,7 @@ def main():
 
     elif args.cmd == "edit":
         candidates = {
-            p.name.strip(): p for p in sort_memos_by_mtime(preferences.out_dir)
+            p.name.strip(): p for p in sort_by_mtime(preferences.out_dir, "*/*.md")
         }
         edit_file_name = custom_select(choices=candidates)
         file_path = candidates[edit_file_name]
@@ -92,13 +96,13 @@ def main():
         memo.save()
 
     elif args.cmd == "list":
-        candidates = sort_memos_by_mtime(preferences.out_dir)
+        candidates = sort_by_mtime(preferences.out_dir, "*/*.md")
         candidates = [p.name for p in candidates if p.name.startswith(args.prefix)]
         print("\n".join(candidates))
 
     elif args.cmd == "preview":
         candidates = {
-            p.name.strip(): p for p in sort_memos_by_mtime(preferences.out_dir)
+            p.name.strip(): p for p in sort_by_mtime(preferences.out_dir, "*/*.md")
         }
         edit_file_name = custom_select(choices=candidates)
         file_path = candidates[edit_file_name]
@@ -121,13 +125,12 @@ def main():
             prompt_text = editor.text(
                 f"Edit: {file_path.name}", default=file_path.read_text()
             )
-            completer.register_prompt_template(prompt_title, prompt_text)
         else:
             prompt_title = PromptSession(
                 "Prompt Title:", erase_when_done=True
             ).app.run()
-            prompt_text = editor.text("Prompt Text:")
-            completer.register_prompt_template(prompt_title, prompt_text)
+            prompt_text = editor.text("Prompt Text")
+        register_prompt_template(completer.templates_dir, prompt_title, prompt_text)
 
     else:
         raise NotImplementedError

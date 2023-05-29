@@ -1,4 +1,3 @@
-from abc import ABCMeta
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable, Optional
@@ -6,6 +5,8 @@ from typing import Iterable, Optional
 import openai
 from prompt_toolkit.completion.base import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
+
+from pmemo.utils import sort_by_mtime
 
 
 class OpenAiCompletion:
@@ -57,20 +58,30 @@ class OpenAiCompletion:
 
 class PromptTemplateCompleter(Completer):
     def __init__(self, out_dir: Path) -> None:
-        self._templates = {file.stem: file for file in out_dir.glob("templates/*.txt")}
         self._templates_dir = out_dir / "templates"
+        self._templates = {
+            file.stem: file for file in sort_by_mtime(self._templates_dir, "*.txt")
+        }
 
     @property
     def templates(self):
         return self._templates
 
+    @property
+    def templates_dir(self):
+        return self._templates_dir
+
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        for title, prompt_file in self._templates.items():
-            yield Completion(text=prompt_file.read_text(), display=title)
+        for title, prompt in self._templates.items():
+            yield Completion(text=prompt.read_text(), display=title)
 
-    def register_prompt_template(self, title: str, prompt: str):
-        template_file = self._templates_dir / title
-        template_file = template_file.with_suffix(".txt")
+
+def register_prompt_template(templates_dir, title: str, prompt: str):
+    template_file = templates_dir / title
+    template_file = template_file.with_suffix(".txt")
+    if template_file.exists() and not prompt:
+        template_file.unlink()
+    else:
         template_file.write_text(prompt)
