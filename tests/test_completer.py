@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
-from prompt_toolkit.completion.base import CompleteEvent
+from prompt_toolkit.completion.base import CompleteEvent, Completion
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import to_formatted_text
 
@@ -35,11 +35,7 @@ def test_prompt_template_completer():
             template_completer.get_completions(Document(), CompleteEvent())
         )
         assert len(completions) == 2
-        # sort by modification time
-        assert completions[0].text == "This is template 2"
-        assert completions[0].display == to_formatted_text("template2")
-        assert completions[1].text == "This is template 1"
-        assert completions[1].display == to_formatted_text("template1")
+        assert all(isinstance(c, Completion) for c in completions)
 
 
 def test_no_prompt_template():

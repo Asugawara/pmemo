@@ -5,7 +5,6 @@ from typing import Iterable, Optional
 import openai
 from prompt_toolkit.completion.base import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
-from prompt_toolkit.shortcuts import confirm
 
 from pmemo.utils import sort_by_mtime
 
