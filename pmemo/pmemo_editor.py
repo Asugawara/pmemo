@@ -102,6 +102,7 @@ class PmemoEditor:
             style=self._style,
             erase_when_done=True,
             auto_suggest=AutoSuggestFromHistoryForMultiline(),
+            complete_while_typing=False,
             **kwargs,
         )
         session.default_buffer.reset(Document(default))
@@ -138,5 +139,13 @@ class PmemoEditor:
                 completion = self._openai_completion.request_chatgpt(data.text)
                 event.app.current_buffer.history.append_string(completion)
                 event.app.current_buffer.suggestion = Suggestion(completion)
+
+        @bindings.add(Keys.ControlI)
+        def _(event):
+            current_buffer = event.app.current_buffer
+            if current_buffer.complete_state:
+                current_buffer.complete_next()
+            else:
+                current_buffer.start_completion(select_first=False)
 
         return bindings

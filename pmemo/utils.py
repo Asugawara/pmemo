@@ -13,17 +13,15 @@ def error_handler(func):
     return wrapper
 
 
-def sort_memos_by_mtime(memo_dir: Path) -> list:
+def sort_by_mtime(dir: Path, pattern: str) -> list:
     """
-    Sorts memo files in a directory by modification time.
+    Sorts files in a directory by modification time.
 
     Args:
-        memo_dir (Path): The directory path containing memo files.
+        dir (Path): The directory path containing files.
 
     Returns:
-        list: A sorted list of Path objects representing memo files, sorted in descending order based on modification time.
+        list: A sorted list of Path objects representing files, sorted in descending order based on modification time.
 
     """
-    return sorted(
-        memo_dir.glob("*/*.md"), key=lambda p: p.stat().st_mtime, reverse=True
-    )
+    return sorted(dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
