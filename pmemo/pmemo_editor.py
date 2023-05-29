@@ -4,6 +4,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
+from prompt_toolkit.filters import has_selection
 from prompt_toolkit.formatted_text.utils import to_plain_text
 from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase
 from prompt_toolkit.keys import Keys
@@ -112,15 +113,15 @@ class PmemoEditor:
         bindings = KeyBindings()
 
         @bindings.add(Keys.Tab)
-        def _(event):
+        def insert_tab(event):
             event.app.current_buffer.insert_text("\t")
 
         @bindings.add(Keys.ControlD)
-        def _(event):
+        def delete_char(event):
             event.app.current_buffer.delete()
 
         @bindings.add(Keys.ControlZ)
-        def _(event):
+        def undo(event):
             event.app.current_buffer.undo()
 
         for bracket_start in self.BRACKETS:
@@ -133,7 +134,7 @@ class PmemoEditor:
                 )
 
         @bindings.add(Keys.ControlO)
-        def _(event):
+        def request_chatgpt(event):
             if self._openai_completion is not None:
                 data = event.app.current_buffer.copy_selection()
                 completion = self._openai_completion.request_chatgpt(data.text)
@@ -141,11 +142,94 @@ class PmemoEditor:
                 event.app.current_buffer.suggestion = Suggestion(completion)
 
         @bindings.add(Keys.ControlI)
-        def _(event):
+        def display_registered_templates(event):
             current_buffer = event.app.current_buffer
             if current_buffer.complete_state:
                 current_buffer.complete_next()
             else:
                 current_buffer.start_completion(select_first=False)
+
+        @bindings.add(Keys.ControlA)
+        def select_all(event):
+            event.app.current_buffer.cursor_position = 0
+            event.app.current_buffer.start_selection()
+            event.app.current_buffer.cursor_position = len(
+                event.app.current_buffer.text
+            )
+
+        @bindings.add(Keys.ControlL)
+        def select_line(event):
+            buffer = event.app.current_buffer
+            buffer.cursor_position += buffer.document.get_start_of_line_position(
+                after_whitespace=False
+            )
+            buffer.start_selection()
+            buffer.cursor_position += buffer.document.get_end_of_line_position()
+
+        @bindings.add(Keys.ControlL, filter=has_selection)
+        def select_lines(event):
+            event.current_buffer.cursor_down(count=event.arg)
+
+        @bindings.add(Keys.Any, filter=has_selection)
+        def replace_selection(event):
+            event.current_buffer.cut_selection()
+            event.current_buffer.insert_text(event.data * event.arg)
+
+        @bindings.add(Keys.Right, filter=has_selection)
+        @bindings.add(Keys.Down, filter=has_selection)
+        def exit_selection_cursor_end(event):
+            event.app.current_buffer.exit_selection()
+
+        @bindings.add(Keys.Left, filter=has_selection)
+        @bindings.add(Keys.Up, filter=has_selection)
+        def exit_selection_cursor_begin(event):
+            buffer = event.app.current_buffer
+            buffer.cursor_position = buffer.document.selection_range()[0]
+            buffer.exit_selection()
+
+        @bindings.add(Keys.ShiftRight, filter=has_selection)
+        def move_selection_right(event):
+            buffer = event.app.current_buffer
+            line_end_position = (
+                buffer.cursor_position + buffer.document.get_end_of_line_position()
+            )
+            if buffer.cursor_position != line_end_position:
+                buffer.cursor_right(count=event.arg)
+            else:
+                buffer.cursor_down()
+
+        @bindings.add(Keys.ShiftLeft, filter=has_selection)
+        def move_selection_left(event):
+            buffer = event.app.current_buffer
+            line_start_position = (
+                buffer.cursor_position + buffer.document.get_start_of_line_position()
+            )
+            if buffer.cursor_position != line_start_position:
+                buffer.cursor_left(count=event.arg)
+            else:
+                buffer.cursor_up()
+
+        @bindings.add(Keys.ShiftDown, filter=has_selection)
+        def move_selection_down(event):
+            event.app.current_buffer.cursor_down(count=event.arg)
+
+        @bindings.add(Keys.ShiftUp, filter=has_selection)
+        def move_selection_up(event):
+            event.app.current_buffer.cursor_up(count=event.arg)
+
+        @bindings.add(Keys.ControlX, filter=has_selection)
+        def cut_selection(event):
+            data = event.app.current_buffer.cut_selection()
+            event.app.clipboard.set_data(data)
+
+        @bindings.add(Keys.ControlC, filter=has_selection)
+        def copy_selection(event):
+            data = event.app.current_buffer.copy_selection()
+            event.app.clipboard.set_data(data)
+
+        @bindings.add(Keys.ControlV)
+        def paste_selection(event):
+            data = event.app.clipboard.get_data()
+            event.app.current_buffer.paste_clipboard_data(data)
 
         return bindings
