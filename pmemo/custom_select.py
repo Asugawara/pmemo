@@ -53,11 +53,11 @@ class CustomFormattedTextControl(FormattedTextControl):
 
     def move_cursor_up(self) -> None:
         self.pointed_at -= 1
-        self.pointed_at = max(0, min(self.pointed_at, self.choice_count - 1))
+        self.pointed_at %= self.choice_count if self.choice_count > 0 else 1
 
     def move_cursor_down(self) -> None:
         self.pointed_at += 1
-        self.pointed_at = max(0, min(self.pointed_at, self.choice_count - 1))
+        self.pointed_at %= self.choice_count if self.choice_count > 0 else 1
 
     def get_pointed_at(self) -> AnyFormattedText:
         self.pointed_at = max(0, min(self.pointed_at, self.choice_count - 1))
@@ -92,7 +92,7 @@ class CustomFormattedTextControl(FormattedTextControl):
 
 @error_handler
 def custom_select(
-    choices: Union[list[str], dict[str, Path]], max_preview_height: int = 10
+    choices: Union[list[str], dict[str, Path]], max_preview_height: int = 10, **kwargs
 ) -> str:
     """Choose one option from a list of choices while searching with a specified query, similar to using the "peco"
     If the execution is interrupted by a "KeyboardInterrupt" (typically triggered by pressing Ctrl+C), the program will be terminated.
@@ -144,5 +144,6 @@ def custom_select(
         key_bindings=control.get_key_bindings(),
         style=Style([("item", ""), ("selected", "underline bg:#d980ff #ffffff")]),
         erase_when_done=True,
+        **kwargs,
     )
     return to_plain_text(app.run()).strip()

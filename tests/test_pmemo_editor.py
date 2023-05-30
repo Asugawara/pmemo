@@ -1,7 +1,9 @@
 from unittest.mock import Mock
 
 import pytest
+from prompt_toolkit.input.ansi_escape_sequences import REVERSE_ANSI_SEQUENCES
 from prompt_toolkit.input.defaults import create_pipe_input
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.output import DummyOutput
 
 from pmemo.pmemo_editor import (
@@ -65,8 +67,15 @@ def test_editor_instruction():
 def test_editor_text(text):
     editor = PmemoEditor()
     with create_pipe_input() as pipe_input:
-        # `\x1b\r` is `Esc -> Enter`
-        pipe_input.send_text("".join((text, "\x1b\r")))
+        pipe_input.send_text(
+            "".join(
+                (
+                    text,
+                    REVERSE_ANSI_SEQUENCES[Keys.Escape],
+                    REVERSE_ANSI_SEQUENCES[Keys.Enter],
+                )
+            )
+        )
         content = editor.text("Test", input=pipe_input, output=DummyOutput())
         assert content == text.strip()
 
@@ -77,7 +86,15 @@ def test_editor_text(text):
 def test_editor_text_when_set_default(text):
     editor = PmemoEditor()
     with create_pipe_input() as pipe_input:
-        pipe_input.send_text("".join((text, "\x1b\r")))
+        pipe_input.send_text(
+            "".join(
+                (
+                    text,
+                    REVERSE_ANSI_SEQUENCES[Keys.Escape],
+                    REVERSE_ANSI_SEQUENCES[Keys.Enter],
+                )
+            )
+        )
         content = editor.text(
             "Test", default="default", input=pipe_input, output=DummyOutput()
         )
@@ -87,7 +104,7 @@ def test_editor_text_when_set_default(text):
 def test_editor_text_cancel():
     editor = PmemoEditor()
     with create_pipe_input() as pipe_input:
-        pipe_input.send_text("\x03")
+        pipe_input.send_text(REVERSE_ANSI_SEQUENCES[Keys.ControlC])
         with pytest.raises(SystemExit) as e:
             editor.text("Test", input=pipe_input, output=DummyOutput())
         assert e.type == SystemExit
@@ -97,6 +114,14 @@ def test_completion():
     editor = PmemoEditor()
     with create_pipe_input() as pipe_input:
         for bracket_start, bracket_end in PmemoEditor.BRACKETS.items():
-            pipe_input.send_text("".join((bracket_start, "\x1b\r")))
+            pipe_input.send_text(
+                "".join(
+                    (
+                        bracket_start,
+                        REVERSE_ANSI_SEQUENCES[Keys.Escape],
+                        REVERSE_ANSI_SEQUENCES[Keys.Enter],
+                    )
+                )
+            )
             content = editor.text("Test", input=pipe_input, output=DummyOutput())
             assert content == "".join((bracket_start, bracket_end))

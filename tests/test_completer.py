@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 import pytest
 from prompt_toolkit.completion.base import CompleteEvent, Completion
 from prompt_toolkit.document import Document
-from prompt_toolkit.formatted_text import to_formatted_text
 
 from pmemo.openai_completion import PromptTemplateCompleter, register_prompt_template
 
