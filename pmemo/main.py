@@ -1,9 +1,7 @@
 import argparse
 import copy
+import subprocess
 
-from prompt_toolkit import PromptSession
-from prompt_toolkit.document import Document
-from prompt_toolkit.formatted_text.utils import to_plain_text
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -20,17 +18,16 @@ from pmemo.utils import error_handler, sort_by_mtime
 
 
 @error_handler
-def update_preference(preferences: dict) -> dict:
+def update_preference(editor: PmemoEditor, preferences: dict) -> dict:
     selected = custom_select(list(preferences))
     if isinstance(preferences[selected], dict):
-        update_preference(preferences[selected])
+        update_preference(editor, preferences[selected])
         return preferences
-    session: PromptSession[str] = PromptSession(
+    new_val = editor.text(
         f"{selected} = {preferences[selected]} -> ",
-        erase_when_done=True,
+        str(preferences[selected]),
+        multiline=False,
     )
-    session.default_buffer.reset(Document(str(preferences[selected])))
-    new_val = to_plain_text(session.app.run()).strip()
     if new_val:
         preferences[selected] = new_val
     return preferences
@@ -59,6 +56,7 @@ def main():
     )
     parser_templates.add_argument("-e", "--edit", action="store_true")
     parser.set_defaults(cmd="new")
+    parser_preferences = subparsers.add_parser("run", help="run codeblock")
     args = parser.parse_args()
 
     preferences = (
@@ -114,7 +112,9 @@ def main():
         if args.init:
             new_preferences = PmemoPreference()
         else:
-            new_preferences_dict = update_preference(copy.deepcopy(preferences.dict()))
+            new_preferences_dict = update_preference(
+                editor, copy.deepcopy(preferences.dict())
+            )
             new_preferences = PmemoPreference.parse_obj(new_preferences_dict)
         new_preferences.write()
 
@@ -126,11 +126,23 @@ def main():
                 f"Edit: {file_path.name}", default=file_path.read_text()
             )
         else:
-            prompt_title = PromptSession(
-                "Prompt Title:", erase_when_done=True
-            ).app.run()
+            prompt_title = editor.text("Prompt Title:", multiline=False)
             prompt_text = editor.text("Prompt Text")
         register_prompt_template(completer.templates_dir, prompt_title, prompt_text)
+
+    elif args.cmd == "run":
+        memo_title_candidates = [
+            p.parent.name.strip() for p in sort_by_mtime(preferences.out_dir, "*/*.py")
+        ]
+        memo_title = custom_select(memo_title_candidates)
+        codeblock_candidates = {
+            p.name.strip(): p
+            for p in sort_by_mtime(preferences.out_dir / memo_title, "*.py")
+        }
+        if not codeblock_candidates:
+            return
+        target_file = custom_select(codeblock_candidates)
+        subprocess.run(["python3", preferences.out_dir / memo_title / target_file])
 
     else:
         raise NotImplementedError

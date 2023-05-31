@@ -3,6 +3,7 @@ from typing import Optional
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import has_selection
 from prompt_toolkit.formatted_text.utils import to_plain_text
@@ -75,26 +76,31 @@ class PmemoEditor:
     def _prompt_continuation(self, width, line_number, wrap_count) -> str:
         return self._ljust_line_number(line_number)
 
-    def _build_prompt_message(self, message: str) -> str:
+    def _build_prompt_message(self, message: str, multiline: bool = True) -> str:
+        if not multiline:
+            return message
         instruction = "\n".join((self.INSTRUCTION, self._ljust_line_number(0)))
         return " ".join((message, instruction)) if message else instruction
 
     @error_handler
-    def text(self, message: str, default: str = "", **kwargs) -> str:
+    def text(
+        self, message: str, default: str = "", multiline: bool = True, **kwargs
+    ) -> str:
         """
         Displays a prompt for text input with customizable message and default value.
 
         Args:
             message (str): The prompt message.
             default (str, optional): The default value to display and return. Defaults to "".
+            multiline (bool): When True, prefer a layout that is more adapted for multiline input.
             **kwargs: Additional keyword arguments for PromptSession.
 
         Returns:
             str: The text input provided by the user.
         """
         session: PromptSession[str] = PromptSession(
-            self._build_prompt_message(message),
-            multiline=True,
+            self._build_prompt_message(message, multiline),
+            multiline=multiline,
             wrap_lines=True,
             mouse_support=True,
             key_bindings=self.get_key_bindings(),
@@ -103,6 +109,7 @@ class PmemoEditor:
             style=self._style,
             erase_when_done=True,
             auto_suggest=AutoSuggestFromHistoryForMultiline(),
+            clipboard=PyperclipClipboard(),
             complete_while_typing=False,
             **kwargs,
         )
@@ -141,13 +148,13 @@ class PmemoEditor:
                 event.app.current_buffer.history.append_string(completion)
                 event.app.current_buffer.suggestion = Suggestion(completion)
 
-        @bindings.add(Keys.ControlI)
+        @bindings.add(Keys.ControlT)
         def display_registered_templates(event):
-            current_buffer = event.app.current_buffer
-            if current_buffer.complete_state:
-                current_buffer.complete_next()
+            buffer = event.app.current_buffer
+            if buffer.complete_state:
+                buffer.complete_next()
             else:
-                current_buffer.start_completion(select_first=False)
+                buffer.start_completion(select_first=False)
 
         @bindings.add(Keys.ControlA)
         def select_all(event):
@@ -174,6 +181,11 @@ class PmemoEditor:
         def replace_selection(event):
             event.current_buffer.cut_selection()
             event.current_buffer.insert_text(event.data * event.arg)
+
+        @bindings.add(Keys.Backspace, filter=has_selection)
+        def delete_selection(event):
+            event.current_buffer.cut_selection()
+            event.app.current_buffer.exit_selection()
 
         @bindings.add(Keys.Right, filter=has_selection)
         @bindings.add(Keys.Down, filter=has_selection)
