@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pmemo"
-version = "0.2.1"
-description = "Pmemo with ChatGPT is a CUI memo app that enables direct terminal editing without full-screen mode. It integrates OpenAI's ChatGPT, allowing interactive inquiries via the ctrl + o shortcut."
+version = "0.3.0"
+description = "Pmemo is a command-line memo editor designed for seamless editing directly in the terminal environment. It offers a range of features to enhance your memo-taking experience and leverages the power of OpenAI's ChatGPT."
 authors = ["Asugawara <asgasw@gmail.com>"]
 readme = "README.md"
 packages = [{include = "pmemo"}]

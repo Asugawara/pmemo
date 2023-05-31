@@ -55,8 +55,8 @@ def main():
         "template", help="register/edit prompt templates"
     )
     parser_templates.add_argument("-e", "--edit", action="store_true")
+    parser_run = subparsers.add_parser("run", help="run codeblock")
     parser.set_defaults(cmd="new")
-    parser_preferences = subparsers.add_parser("run", help="run codeblock")
     args = parser.parse_args()
 
     preferences = (
