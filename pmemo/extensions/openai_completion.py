@@ -18,7 +18,7 @@ class OpenAiCompletion(ExtensionBase):
         self,
         api_key: Optional[str] = None,
         model: str = "gpt-3.5-turbo",
-        key_map: Keys = Keys.ControlO,
+        key_binding: Keys = Keys.ControlO,
         **kwargs,
     ) -> None:
         """
@@ -31,7 +31,7 @@ class OpenAiCompletion(ExtensionBase):
         """
         self._api_key = api_key
         self._model = model
-        self._key_map = key_map
+        self._key_binding = key_binding
         self._kwargs = kwargs
 
     @lru_cache
@@ -60,7 +60,7 @@ class OpenAiCompletion(ExtensionBase):
     def get_key_bindings(self) -> KeyBindingsBase:
         bindings = KeyBindings()
 
-        @bindings.add(self._key_map)
+        @bindings.add(self._key_binding)
         def request_chatgpt(event):
             data = event.app.current_buffer.copy_selection()
             completion = self.request_chatgpt(data.text)

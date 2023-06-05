@@ -15,12 +15,12 @@ class PromptTemplateCompleter(Completer, ExtensionBase):
     A completer that provides prompt template suggestions based on existing template files.
     """
 
-    def __init__(self, out_dir: Path, key_map: Keys = Keys.ControlT) -> None:
+    def __init__(self, out_dir: Path, key_binding: Keys = Keys.ControlT) -> None:
         self._templates_dir = out_dir / "templates"
         self._templates = {
             file.stem: file for file in sort_by_mtime(self._templates_dir, "*.txt")
         }
-        self._key_map = key_map
+        self._key_binding = key_binding
 
     @property
     def templates(self) -> dict[str, Path]:
@@ -39,7 +39,7 @@ class PromptTemplateCompleter(Completer, ExtensionBase):
     def get_key_bindings(self) -> KeyBindingsBase:
         bindings = KeyBindings()
 
-        @bindings.add(self._key_map)
+        @bindings.add(self._key_binding)
         def display_registered_templates(event):
             buffer = event.app.current_buffer
             if buffer.complete_state:
