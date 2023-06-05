@@ -4,10 +4,11 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
+from prompt_toolkit.completion import Completer, merge_completers
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import has_selection
 from prompt_toolkit.formatted_text.utils import to_plain_text
-from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase
+from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase, merge_key_bindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout.screen import Char
 from prompt_toolkit.lexers import PygmentsLexer
@@ -15,7 +16,7 @@ from prompt_toolkit.styles import style_from_pygments_cls
 from pygments.lexers.markup import MarkdownLexer
 from pygments.styles import get_style_by_name
 
-from pmemo.openai_completion import OpenAiCompletion
+from pmemo.extensions.base import ExtensionBase
 from pmemo.utils import error_handler
 
 
@@ -51,7 +52,7 @@ class PmemoEditor:
         prompt_spaces: int = 4,
         style_name: str = "github-dark",
         indentation_spaces: int = 4,
-        openai_completion: Optional[OpenAiCompletion] = None,
+        extensions: Optional[list[ExtensionBase]] = None,
     ) -> None:
         """
         Initializes a PmemoEditor instance.
@@ -63,11 +64,10 @@ class PmemoEditor:
         """
         self._prompt_spaces = prompt_spaces
         self._style = style_from_pygments_cls(get_style_by_name(style_name))
-        self._content = None
         Char.display_mappings["\t"] = " " * indentation_spaces
         Char.display_mappings["\n"] = " "
 
-        self._openai_completion = openai_completion
+        self._extensions = extensions
 
     def _ljust_line_number(self, line_number: int) -> str:
         line_number_str = str(line_number + 1)
@@ -98,12 +98,21 @@ class PmemoEditor:
         Returns:
             str: The text input provided by the user.
         """
+        key_bindings = self.get_key_bindings()
+        completer = None
+        if self._extensions is not None:
+            key_bindings = merge_key_bindings(
+                [key_bindings, *[e.get_key_bindings() for e in self._extensions]]
+            )
+            completer = merge_completers(
+                [e for e in self._extensions if isinstance(e, Completer)]
+            )
         session: PromptSession[str] = PromptSession(
             self._build_prompt_message(message, multiline),
             multiline=multiline,
             wrap_lines=True,
             mouse_support=True,
-            key_bindings=self.get_key_bindings(),
+            key_bindings=key_bindings,
             prompt_continuation=self._prompt_continuation,
             lexer=PygmentsLexer(MarkdownLexer),
             style=self._style,
@@ -111,6 +120,7 @@ class PmemoEditor:
             auto_suggest=AutoSuggestFromHistoryForMultiline(),
             clipboard=PyperclipClipboard(),
             complete_while_typing=False,
+            completer=completer,
             **kwargs,
         )
         session.default_buffer.reset(Document(default))
@@ -139,22 +149,6 @@ class PmemoEditor:
                 event.app.current_buffer.insert_text(
                     self.BRACKETS[event.data], move_cursor=False
                 )
-
-        @bindings.add(Keys.ControlO)
-        def request_chatgpt(event):
-            if self._openai_completion is not None:
-                data = event.app.current_buffer.copy_selection()
-                completion = self._openai_completion.request_chatgpt(data.text)
-                event.app.current_buffer.history.append_string(completion)
-                event.app.current_buffer.suggestion = Suggestion(completion)
-
-        @bindings.add(Keys.ControlT)
-        def display_registered_templates(event):
-            buffer = event.app.current_buffer
-            if buffer.complete_state:
-                buffer.complete_next()
-            else:
-                buffer.start_completion(select_first=False)
 
         @bindings.add(Keys.ControlA)
         def select_all(event):

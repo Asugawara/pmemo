@@ -5,7 +5,10 @@ import pytest
 from prompt_toolkit.completion.base import CompleteEvent, Completion
 from prompt_toolkit.document import Document
 
-from pmemo.openai_completion import PromptTemplateCompleter, register_prompt_template
+from pmemo.extensions.prompt_template_manager import (
+    PromptTemplateCompleter,
+    register_prompt_template,
+)
 
 
 def test_prompt_template_completer():

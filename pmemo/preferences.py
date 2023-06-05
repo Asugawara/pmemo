@@ -2,6 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from prompt_toolkit.keys import Keys
 from pydantic import BaseModel, PositiveInt
 
 
@@ -74,6 +75,7 @@ class OpenAiPreference(BaseModel, frozen=True):
     max_tokens: int = 16
     temperature: int = 0
     n: int = 1
+    key_map: Keys = Keys.ControlO
 
 
 PREFERENCE_FILE_PATH = Path(__file__).parent / ".preference"
