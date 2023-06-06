@@ -34,7 +34,7 @@ command | description
 `pm list` | list all memos
 `pm preview` | preview memo(markdown) on terminal
 `pm preference` | please refer to the [Preference section](https://github.com/Asugawara/pmemo#Preference)
-`pm template` | create a new prompt template for completion usingh `ctrl-t`
+`pm template` | create a new prompt template for completion using `ctrl-t`
 `pm template -e` | edit an existing prompt template.
 `pm run` | execute code blocks within your memos.
 

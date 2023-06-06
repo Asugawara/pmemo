@@ -6,12 +6,12 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from pmemo.custom_select import custom_select
-from pmemo.memo import Memo
-from pmemo.openai_completion import (
-    OpenAiCompletion,
+from pmemo.extensions.openai_completion import OpenAiCompletion
+from pmemo.extensions.prompt_template_manager import (
     PromptTemplateCompleter,
     register_prompt_template,
 )
+from pmemo.memo import Memo
 from pmemo.pmemo_editor import PmemoEditor
 from pmemo.preferences import PREFERENCE_FILE_PATH, PmemoPreference
 from pmemo.utils import error_handler, sort_by_mtime
@@ -67,12 +67,14 @@ def main():
 
     completer = PromptTemplateCompleter(preferences.out_dir)
 
+    extensions = [completer, OpenAiCompletion(**preferences.openai_preference.dict())]
+
     editor = PmemoEditor(
         **preferences.editor_preference.dict(),
-        openai_completion=OpenAiCompletion(**preferences.openai_preference.dict()),
+        extensions=extensions,
     )
     if args.cmd == "new":
-        content = editor.text("Memo", completer=completer)
+        content = editor.text("Memo")
         memo = Memo(
             preferences.out_dir,
             content,
@@ -87,9 +89,7 @@ def main():
         edit_file_name = custom_select(choices=candidates)
         file_path = candidates[edit_file_name]
         memo = Memo.from_file(file_path, preferences.memo_preference.max_title_length)
-        content = editor.text(
-            f"Edit: {file_path.name}", default=memo.content, completer=completer
-        )
+        content = editor.text(f"Edit: {file_path.name}", default=memo.content)
         memo.edit_content(content)
         memo.save()
 
