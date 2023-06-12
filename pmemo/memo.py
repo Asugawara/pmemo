@@ -4,7 +4,7 @@ import hashlib
 import re
 from pathlib import Path
 
-from prompt_toolkit.shortcuts import confirm
+from pmemo.utils import confirm_overwrite, confirm_remove
 
 RE_CODEBLOCK = re.compile(r"`{3}([^:\s]*):?(.*?)\n([\s\S]+?)`{3}")
 LANG_EXT = {"markdown": ".md", "python": ".py", "python3": ".py"}
@@ -132,27 +132,21 @@ class Memo:
         memo_dir.mkdir(parents=True, exist_ok=True)
         return memo_dir / basename
 
-    def _remove(self) -> None:
-        if self.file_path.exists() and confirm(
-            f"{self.file_path.parent.name}: Remove?"
-        ):
+    def remove(self) -> None:
+        """
+        Removes the memo.
+        """
+        if confirm_remove(self.file_path.parent):
             for file in self.file_path.parent.iterdir():
                 if file.is_file():
                     file.unlink()
             self.file_path.parent.rmdir()
 
-    def _confirm_overwrite(self) -> bool:
-        if self.file_path.exists() and self._is_edited:
-            return confirm(f"{self.file_path.name}: Overwrite?")
-        return True
-
     def save(self) -> None:
         """
         Saves the memo to the file system, including associated code blocks.
         """
-        if not self._content:
-            self._remove()
-        elif self._confirm_overwrite():
+        if confirm_overwrite(self.file_path):
             self.file_path.write_text(self._content)
 
             for _, blockname, code in extract_codeblocks(

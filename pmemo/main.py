@@ -41,13 +41,17 @@ def main():
     )
     parser_edit = subparsers.add_parser(
         "edit",
-        help="edit memo (searching with a specified query, similar to using the `peco`)",
+        help="edit memo",
+    )
+    parser_remove = subparsers.add_parser(
+        "remove",
+        help="remove memo",
     )
     parser_list = subparsers.add_parser("list", help="list all memos")
     parser_list.add_argument("-p", "--prefix", type=str, default="")
     parser_preview = subparsers.add_parser(
         "preview",
-        help="preview memo(markdown) on terminal (searching with a specified query, similar to using the `peco`)",
+        help="preview memo(markdown) on terminal",
     )
     parser_preferences = subparsers.add_parser("preference", help="set preferences")
     parser_preferences.add_argument("--init", action="store_true")
@@ -92,6 +96,15 @@ def main():
         content = editor.text(f"Edit: {file_path.name}", default=memo.content)
         memo.edit_content(content)
         memo.save()
+
+    elif args.cmd == "remove":
+        candidates = {
+            p.name.strip(): p for p in sort_by_mtime(preferences.out_dir, "*/*.md")
+        }
+        edit_file_name = custom_select(choices=candidates)
+        file_path = candidates[edit_file_name]
+        memo = Memo.from_file(file_path, preferences.memo_preference.max_title_length)
+        memo.remove()
 
     elif args.cmd == "list":
         candidates = sort_by_mtime(preferences.out_dir, "*/*.md")

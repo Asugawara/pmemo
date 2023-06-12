@@ -151,11 +151,8 @@ def test_memo_save(content):
     with TemporaryDirectory() as tmp_outdir:
         memo = Memo(Path(tmp_outdir), content)
         memo.save()
-        if content:
-            assert memo.file_path.exists()
-        else:
-            assert not memo.file_path.exists()
-        with patch("pmemo.memo.confirm", return_value=True):
+        assert memo.file_path.exists()
+        with patch("pmemo.utils.confirm", return_value=True):
             edited_content = "".join((content, "edit"))
             memo.edit_content(edited_content)
             memo.save()
@@ -164,7 +161,7 @@ def test_memo_save(content):
 
             memo.edit_content("")
             memo.save()
-            assert not memo.file_path.exists()
+            assert memo.file_path.read_text() == ""
 
 
 @pytest.mark.parametrize(
@@ -175,14 +172,15 @@ def test_memo_nosave(content):
     with TemporaryDirectory() as tmp_outdir:
         memo = Memo(Path(tmp_outdir), content)
         memo.save()
-        with patch("pmemo.memo.confirm", return_value=False):
+        with patch("pmemo.utils.confirm", return_value=False):
             edited_content = "".join((content, "edit"))
             memo.edit_content(edited_content)
             memo.save()
-            if content:
-                assert memo.file_path.read_text() == content
-                assert memo.file_path.read_text() != edited_content
+            assert memo.file_path.read_text() == content
+            assert memo.file_path.read_text() != edited_content
 
             memo.edit_content("")
             memo.save()
             assert memo.file_path.exists()
+            assert memo.file_path.read_text() == content
+            assert memo.file_path.read_text() != edited_content

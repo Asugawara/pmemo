@@ -1,6 +1,8 @@
 from functools import wraps
 from pathlib import Path
 
+from prompt_toolkit.shortcuts import confirm
+
 
 def error_handler(func):
     @wraps(func)
@@ -25,3 +27,15 @@ def sort_by_mtime(dir: Path, pattern: str) -> list:
 
     """
     return sorted(dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def confirm_overwrite(file_path: Path) -> bool:
+    if file_path.exists():
+        return confirm(f"{file_path.name}: Overwrite?")
+    return True
+
+
+def confirm_remove(file_path: Path) -> bool:
+    if file_path.exists():
+        return confirm(f"{file_path.name}: Remove?")
+    return False
