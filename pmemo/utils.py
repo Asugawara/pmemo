@@ -15,7 +15,7 @@ def error_handler(func):
     return wrapper
 
 
-def sort_by_mtime(dir: Path, pattern: str) -> list:
+def sort_by_mtime(dir: Path, pattern: str) -> list[Path]:
     """
     Sorts files in a directory by modification time.
 
@@ -39,3 +39,13 @@ def confirm_remove(file_path: Path) -> bool:
     if file_path.exists():
         return confirm(f"{file_path.name}: Remove?")
     return False
+
+
+def read_head(file_path: Path, n: int = 5) -> list[str]:
+    head = []
+    with file_path.open("r") as f:
+        for i, line in enumerate(f):
+            if i == n:
+                break
+            head.append(line)
+    return head

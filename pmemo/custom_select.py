@@ -19,7 +19,7 @@ from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
 
-from pmemo.utils import error_handler
+from pmemo.utils import error_handler, sort_by_mtime
 
 ITEM_CLASS = "class:item"
 SELECTED_CLASS = "class:selected"
@@ -147,3 +147,9 @@ def custom_select(
         **kwargs,
     )
     return to_plain_text(app.run()).strip()
+
+
+def select_file(dir: Path, pattern: str) -> Path:
+    candidates = {p.stem: p for p in sort_by_mtime(dir, pattern)}
+    selected = custom_select(choices=candidates)
+    return candidates[selected]
