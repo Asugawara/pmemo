@@ -7,7 +7,7 @@ from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase
 from prompt_toolkit.keys import Keys
 
 from pmemo.extensions.base import ExtensionBase
-from pmemo.utils import sort_by_mtime
+from pmemo.utils import confirm_overwrite, sort_by_mtime
 
 
 class PromptTemplateCompleter(Completer, ExtensionBase):
@@ -16,24 +16,17 @@ class PromptTemplateCompleter(Completer, ExtensionBase):
     """
 
     def __init__(self, out_dir: Path, key_binding: Keys = Keys.ControlT) -> None:
-        self._templates_dir = out_dir / "templates"
-        self._templates = {
-            file.stem: file for file in sort_by_mtime(self._templates_dir, "*.txt")
-        }
+        self._templates = {file.stem: file for file in sort_by_mtime(out_dir, "*.txt")}
         self._key_binding = key_binding
 
     @property
     def templates(self) -> dict[str, Path]:
         return self._templates
 
-    @property
-    def templates_dir(self) -> Path:
-        return self._templates_dir
-
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        for title, prompt in self._templates.items():
+        for title, prompt in self.templates.items():
             yield Completion(text=prompt.read_text(), display=title)
 
     def get_key_bindings(self) -> KeyBindingsBase:
@@ -63,7 +56,5 @@ def register_prompt_template(templates_dir: Path, title: str, prompt: str) -> No
         templates_dir.mkdir(parents=True)
     template_file = templates_dir / title
     template_file = template_file.with_suffix(".txt")
-    if template_file.exists() and not prompt:
-        template_file.unlink()
-    else:
+    if confirm_overwrite(template_file):
         template_file.write_text(prompt)

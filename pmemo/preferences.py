@@ -5,6 +5,9 @@ from typing import Optional
 from prompt_toolkit.keys import Keys
 from pydantic import BaseModel, PositiveInt
 
+PREF_FILE_PATH = Path(__file__).parent / ".preference"
+DEFAULT_PMEMO_DIR = Path.home() / ".pmemo"
+
 
 # ref: https://github.com/pygments/pygments/blob/c3e1371fceb104b69c613a014d0b2124f8d0fe1b/pygments/styles/__init__.py#L16
 class PygmentsStyles(str, Enum):
@@ -58,18 +61,18 @@ class PygmentsStyles(str, Enum):
     github_dark = "github-dark"
 
 
-class EditorPreference(BaseModel, frozen=True):
+class EditorPref(BaseModel, frozen=True):
     prompt_spaces: PositiveInt = 4
     style_name: PygmentsStyles = PygmentsStyles.github_dark
     indentation_spaces: PositiveInt = 4
 
 
-class MemoPreference(BaseModel, frozen=True):
+class MemoPref(BaseModel, frozen=True):
     max_title_length: PositiveInt = 30
 
 
 # ref: https://platform.openai.com/docs/api-reference/completions/create
-class OpenAiPreference(BaseModel, frozen=True):
+class OpenAiPref(BaseModel, frozen=True):
     api_key: Optional[str] = None
     model: str = "gpt-3.5-turbo"
     max_tokens: int = 16
@@ -78,14 +81,21 @@ class OpenAiPreference(BaseModel, frozen=True):
     key_binding: Keys = Keys.ControlO
 
 
-PREFERENCE_FILE_PATH = Path(__file__).parent / ".preference"
+class TemplateManagerPref(BaseModel, frozen=True):
+    template_dir: Path = DEFAULT_PMEMO_DIR / ".templates"
+    key_binding: Keys = Keys.ControlT
 
 
-class PmemoPreference(BaseModel, frozen=True):
-    out_dir: Path = Path.home() / ".pmemo"
-    memo_preference: MemoPreference = MemoPreference()
-    editor_preference: EditorPreference = EditorPreference()
-    openai_preference: OpenAiPreference = OpenAiPreference()
+class ExtensionsPref(BaseModel, frozen=True):
+    openai_pref: OpenAiPref = OpenAiPref()
+    template_pref: TemplateManagerPref = TemplateManagerPref()
+
+
+class PmemoPref(BaseModel, frozen=True):
+    out_dir: Path = DEFAULT_PMEMO_DIR
+    memo_pref: MemoPref = MemoPref()
+    editor_pref: EditorPref = EditorPref()
+    extensions_pref: ExtensionsPref = ExtensionsPref()
 
     def write(self):
-        PREFERENCE_FILE_PATH.write_text(self.json())
+        PREF_FILE_PATH.write_text(self.json())

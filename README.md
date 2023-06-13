@@ -31,6 +31,7 @@ command | description
 -- | --
 `pm` or `pm new` | create new memo
 `pm edit` | edit memo
+`pm remove` | remove memo
 `pm list` | list all memos
 `pm preview` | preview memo(markdown) on terminal
 `pm preference` | please refer to the [Preference section](https://github.com/Asugawara/pmemo#Preference)
