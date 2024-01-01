@@ -112,8 +112,8 @@ def main():
         if args.init:
             new_pref = PmemoPref()
         else:
-            new_pref_dict = update_pref(editor, copy.deepcopy(pref.dict()))
-            new_pref = PmemoPref.parse_obj(new_pref_dict)
+            new_pref_dict = update_pref(editor, copy.deepcopy(pref.model_dump()))
+            new_pref = PmemoPref.model_validate(new_pref_dict)
         new_pref.write()
 
     elif args.cmd == "template":
