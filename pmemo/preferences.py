@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -97,5 +98,10 @@ class PmemoPref(BaseModel, frozen=True):
     editor_pref: EditorPref = EditorPref()
     extensions_pref: ExtensionsPref = ExtensionsPref()
 
-    def write(self):
-        PREF_FILE_PATH.write_text(self.json())
+    def write(self) -> None:
+        PREF_FILE_PATH.write_text(self.model_dump_json())
+
+    @classmethod
+    def read(cls) -> "PmemoPref":
+        with PREF_FILE_PATH.open() as f:
+            return cls.model_validate(json.load(f))
