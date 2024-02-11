@@ -3,8 +3,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from cryptography.fernet import Fernet
 from prompt_toolkit.keys import Keys
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, Field, PositiveInt
 
 PREF_FILE_PATH = Path(__file__).parent / ".preference"
 DEFAULT_PMEMO_DIR = Path.home() / ".pmemo"
@@ -92,11 +93,18 @@ class ExtensionsPref(BaseModel, frozen=True):
     template_pref: TemplateManagerPref = TemplateManagerPref()
 
 
+class ApiPref(BaseModel, frozen=True):
+    encryption_key: bytes = Field(default_factory=Fernet.generate_key)
+    user_token: Optional[str] = None
+    user_refresh_token: Optional[str] = None
+
+
 class PmemoPref(BaseModel, frozen=True):
     out_dir: Path = DEFAULT_PMEMO_DIR
     memo_pref: MemoPref = MemoPref()
     editor_pref: EditorPref = EditorPref()
     extensions_pref: ExtensionsPref = ExtensionsPref()
+    api_pref: ApiPref = ApiPref()
 
     def write(self) -> None:
         PREF_FILE_PATH.write_text(self.model_dump_json())
