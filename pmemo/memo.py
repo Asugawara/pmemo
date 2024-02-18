@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+import sys
+from difflib import context_diff
 from pathlib import Path
 
 from pmemo.utils import confirm_overwrite, confirm_remove
@@ -142,10 +144,25 @@ class Memo:
                     file.unlink()
             self.file_path.parent.rmdir()
 
-    def save(self) -> None:
+    def save(self, show_diff: bool = False) -> None:
         """
         Saves the memo to the file system, including associated code blocks.
         """
+        if show_diff and self.file_path.exists():
+            existing_content = self.file_path.read_text().splitlines()
+            new_content = self._content.splitlines()
+            sys.stderr.writelines(
+                "\n".join(
+                    context_diff(
+                        existing_content,
+                        new_content,
+                        fromfile=self.file_path.name,
+                        tofile="pulled content",
+                    )
+                )
+            )
+            sys.stderr.flush()
+
         if confirm_overwrite(self.file_path):
             self.file_path.write_text(self._content)
 

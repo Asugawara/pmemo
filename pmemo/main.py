@@ -2,9 +2,13 @@ import argparse
 import copy
 import subprocess
 
+from logzero import logger
 from rich.console import Console
 from rich.markdown import Markdown
 
+from pmemo.api.auth import APIAuthenticator
+from pmemo.api.client import APIClient
+from pmemo.api.config import Tokens
 from pmemo.custom_select import custom_select, select_file
 from pmemo.extensions.openai_completion import OpenAiCompletion
 from pmemo.extensions.prompt_template_manager import (
@@ -31,6 +35,13 @@ def update_pref(editor: PmemoEditor, pref: dict) -> dict:
     if new_val:
         pref[selected] = new_val
     return pref
+
+
+def update_tokens(pref: PmemoPref, tokens: Tokens) -> None:
+    new_pref_dict = pref.model_dump()
+    new_pref_dict["api_pref"]["user_token"] = tokens.token
+    new_pref_dict["api_pref"]["user_refresh_token"] = tokens.refresh_token
+    PmemoPref.model_validate(new_pref_dict).write()
 
 
 def main():
@@ -60,6 +71,12 @@ def main():
     )
     parser_templates.add_argument("-e", "--edit", action="store_true")
     parser_run = subparsers.add_parser("run", help="run codeblock")
+    parser_signup = subparsers.add_parser("signup", help="signup to pmemo")
+    parser_login = subparsers.add_parser("login", help="login to pmemo")
+    parser_push = subparsers.add_parser("push", help="push memo to db with encryption")
+    parser_pull = subparsers.add_parser(
+        "pull", help="pull memo from db with decryption"
+    )
     parser.set_defaults(cmd="new")
     args = parser.parse_args()
 
@@ -144,8 +161,48 @@ def main():
         target_file = custom_select(codeblock_candidates)
         subprocess.run(["python3", pref.out_dir / memo_title / target_file])
 
+    elif args.cmd == "signup":
+        tokens = APIAuthenticator().signup()
+        update_tokens(pref, tokens)
+
+    elif args.cmd == "login":
+        tokens = APIAuthenticator().login(pref.api_pref.user_refresh_token)
+        update_tokens(pref, tokens)
+
+    elif args.cmd == "push":
+        if pref.api_pref.user_token is None:
+            logger.error("You need to signup/login first")
+            return
+
+        memos = sort_by_mtime(pref.out_dir, "*/*.md")
+        tokens = Tokens(
+            token=pref.api_pref.user_token,
+            refresh_token=pref.api_pref.user_refresh_token,
+        )
+        client = APIClient(tokens, pref.api_pref.encryption_key)
+        for memo in memos:
+            client.store_memo(memo.name.encode(), memo.read_bytes())
+
+    elif args.cmd == "pull":
+        if pref.api_pref.user_token is None:
+            logger.error("You need to signup/login first")
+            return
+
+        tokens = Tokens(
+            token=pref.api_pref.user_token,
+            refresh_token=pref.api_pref.user_refresh_token,
+        )
+        client = APIClient(tokens, pref.api_pref.encryption_key)
+        try:
+            for memo_content in client.get_memos():
+                pulled_memo = Memo(pref.out_dir, memo_content)
+                pulled_memo.save(show_diff=True)
+        except KeyboardInterrupt:
+            logger.error("Pulling canceled")
+            pass
+
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"Unknown command: {args.cmd}")
 
 
 if __name__ == "__main__":
