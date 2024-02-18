@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class APIConfig(BaseModel, frozen=True):
-    domain: str = os.getenv("PMEMO_SERVER_DOMAIN", "http://localhost:8000")
+    domain: str = "https://pmemo.asugawara.com"
     version: str = "v1"
 
     @property

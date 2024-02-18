@@ -2,6 +2,7 @@ import argparse
 import copy
 import subprocess
 
+from logzero import logger
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -170,7 +171,7 @@ def main():
 
     elif args.cmd == "push":
         if pref.api_pref.user_token is None:
-            print("You need to signup/login first")
+            logger.error("You need to signup/login first")
             return
 
         memos = sort_by_mtime(pref.out_dir, "*/*.md")
@@ -184,7 +185,7 @@ def main():
 
     elif args.cmd == "pull":
         if pref.api_pref.user_token is None:
-            print("You need to signup/login first")
+            logger.error("You need to signup/login first")
             return
 
         tokens = Tokens(
@@ -192,12 +193,16 @@ def main():
             refresh_token=pref.api_pref.user_refresh_token,
         )
         client = APIClient(tokens, pref.api_pref.encryption_key)
-        for memo_content in client.get_memos():
-            pulled_memo = Memo(pref.out_dir, memo_content)
-            pulled_memo.save(show_diff=True)
+        try:
+            for memo_content in client.get_memos():
+                pulled_memo = Memo(pref.out_dir, memo_content)
+                pulled_memo.save(show_diff=True)
+        except KeyboardInterrupt:
+            logger.error("Pulling canceled")
+            pass
 
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"Unknown command: {args.cmd}")
 
 
 if __name__ == "__main__":
