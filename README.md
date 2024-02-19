@@ -18,6 +18,7 @@
 - Efficient search functionality for your memos
 - Easily customizable to fit your preferences
 - Execute code blocks written by you or ChatGPT immediately (Python only)
+- Unrestricted access and management of memos, whether on local machine, remote server or different environments.
 
 # Installation
 
@@ -38,6 +39,10 @@ command | description
 `pm template` | create a new prompt template for completion using `ctrl-t`
 `pm template -e` | edit an existing prompt template.
 `pm run` | execute code blocks within your memos.
+`pm signup` | create new account in the system. (requires email and password)
+`pm login` | log into the existing account.
+`pm push` | push local memos to the pmemo_server
+`pm pull` | download updates from the pmemo_server
 
 
 # Preference
@@ -45,17 +50,31 @@ command | description
 name | default | description
 -- | -- | --
 out_dir | `$HOME/.pmemo` | specifies the directory where Pmemo saves memos
-memo_preference.max_title_length | 30 | sets the maximum length of a memo title
-editor_preference.prompt_spaces | 4 | defines the number of spaces used for line numbering in the editor
-editor_preference.style_name | "github-dark" | sets the style of the editor
-editor_preference.indentation_spaces | 4 | sets the number of spaces for indentation (tab size)
-openai_preference.api_key | None | The OpenAI API uses API keys for authentication
-openai_preference.model | "gpt-3.5-turbo" | ID of the model to use
-openai_preference.max_tokens | 16 | the maximum number of tokens to generate in the completion
-openai_preference.temperature | 0 | what sampling temperature to use, between 0 and 2
-openai_preference.n | 1 | how many completions to generate for each prompt
+memo_pref.max_title_length | 30 | sets the maximum length of a memo title
+editor_pref.prompt_spaces | 4 | defines the number of spaces used for line numbering in the editor
+editor_pref.style_name | "github-dark" | sets the style of the editor
+editor_pref.indentation_spaces | 4 | sets the number of spaces for indentation (tab size)
+extensions_pref.openai_pref.api_key | None | The OpenAI API uses API keys for authentication
+extensions_pref.openai_pref.model | "gpt-3.5-turbo" | ID of the model to use
+extensions_pref.openai_pref.max_tokens | 16 | the maximum number of tokens to generate in the completion
+extensions_pref.openai_pref.temperature | 0 | what sampling temperature to use, between 0 and 2
+extensions_pref.openai_pref.n | 1 | how many completions to generate for each prompt
+extensions_pref.openai_pref.key_binding | ctrl-O | post the selected range as a request to OpenAI
+extensions_pref.template_pref.template_dir | `$HOME/.templates` | specifies the directory where templates in memos save
+extensions_pref.template_pref.key_binding | ctrl-T | save the selected range as a template
+api_pref.encryption_key | Fernet.generate_key | a key used for encryption
+api_pref.user_token | None | the token used for user login
+api_pref.user_refresh_token | None | the token used for refreshing the token
 
-Note: To enable ChatGPT functionality, make sure to set your OpenAI API key as an environment variable or preference.
+
+
+> [!NOTE]
+> To enable ChatGPT functionality, make sure to set your OpenAI API key as an environment variable or preference.
+
+
+> [!TIP]
+> If you are pulling from a different terminal, you need to have the same encryption key.
+
 
 # Versioning
 This repo uses [Semantic Versioning](https://semver.org/).
