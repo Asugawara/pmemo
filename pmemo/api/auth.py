@@ -33,6 +33,8 @@ class APIAuthenticator:
         tokens = res.json()
         if res.status_code == requests.codes.ok:
             logger.info("Signup Success")
+        elif res.status_code == requests.codes.too_many_requests:
+            logger.error("Too many requests")
         else:
             logger.error("Signup Failed")
         return Tokens(
@@ -48,6 +50,8 @@ class APIAuthenticator:
         tokens = res.json()
         if res.status_code == requests.codes.ok:
             logger.info("Refresh Token Success")
+        elif res.status_code == requests.codes.too_many_requests:
+            logger.error("Too many requests")
         else:
             logger.error("Refresh Token Failed")
         return Tokens(
@@ -66,6 +70,8 @@ class APIAuthenticator:
         tokens = res.json()
         if res.status_code == requests.codes.ok:
             logger.info("Login Success")
+        elif res.status_code == requests.codes.too_many_requests:
+            logger.error("Too many requests")
         else:
             logger.error("Login Failed")
         return Tokens(
